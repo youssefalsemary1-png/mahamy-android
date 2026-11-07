@@ -22,124 +22,217 @@ class MahamyApp extends StatelessWidget {
         scaffoldBackgroundColor: backgroundColor,
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
-          brightness: Brightness.light,
         ),
         useMaterial3: true,
-        fontFamily: 'Cairo',
       ),
       home: const HomePage(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<String> myTasks = [];
+  List<bool> isFinished = [];
+
+  final TextEditingController myController =
+      TextEditingController();
+
+  void addNewTask() {
+    if (myController.text.trim().isEmpty) {
+      return;
+    }
+
+    setState(() {
+      myTasks.add(myController.text.trim());
+      isFinished.add(false);
+      myController.clear();
+    });
+  }
+
+  void deleteTask(int index) {
+    setState(() {
+      myTasks.removeAt(index);
+      isFinished.removeAt(index);
+    });
+  }
+
+  void toggleTask(int index, bool? value) {
+    setState(() {
+      isFinished[index] = value ?? false;
+    });
+  }
+
+  @override
+  void dispose() {
+    myController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    int doneCount =
+        isFinished.where((e) => e == true).length;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        backgroundColor: backgroundColor,
         appBar: AppBar(
-          backgroundColor: backgroundColor,
           title: const Text(
-            'مهامي',
+            "مهامي",
             style: TextStyle(
-              color: textColor,
-              fontSize: 25,
               fontWeight: FontWeight.bold,
+              color: textColor,
             ),
           ),
-          centerTitle: false,
+          backgroundColor: backgroundColor,
+          centerTitle: true,
           elevation: 0,
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                'نظّم يومك وأنجز أهدافك',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 23,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'كل إنجاز صغير يقربك من هدفك 🌱',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 30),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(
-                      Icons.task_alt,
-                      color: accentColor,
-                      size: 55,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'يوم جديد وفرصة جديدة!',
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
+        body: Column(
+          children: [
+            // إضافة مهمة جديدة
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: myController,
+                      onSubmitted: (_) => addNewTask(),
+                      decoration: InputDecoration(
+                        hintText: "اكتب مهمة جديدة...",
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      'أضف أول مهمة وابدأ إنجاز يومك',
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 14,
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: addNewTask,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: textColor,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                        horizontal: 18,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add),
-                  label: const Text(
-                    'إضافة مهمة',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    child: const Text("إضافة"),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: textColor,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                ),
+                ],
               ),
-              const SizedBox(height: 15),
-            ],
-          ),
+            ),
+
+            // عداد المهام
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+              ),
+              child: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("عندك ${myTasks.length} مهمة"),
+                  Text("أنجزت $doneCount"),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // قائمة المهام
+            Expanded(
+              child: myTasks.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.task_alt,
+                            size: 65,
+                            color: accentColor,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            "يوم جديد وفرصة جديدة!",
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "أضف أول مهمة وابدأ إنجاز يومك",
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: myTasks.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          color: Colors.white,
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(14),
+                          ),
+                          child: ListTile(
+                            leading: Checkbox(
+                              value: isFinished[index],
+                              activeColor: primaryColor,
+                              checkColor: textColor,
+                              onChanged: (value) {
+                                toggleTask(index, value);
+                              },
+                            ),
+                            title: Text(
+                              myTasks[index],
+                              style: TextStyle(
+                                color: textColor,
+                                decoration: isFinished[index]
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.redAccent,
+                              ),
+                              onPressed: () {
+                                deleteTask(index);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
