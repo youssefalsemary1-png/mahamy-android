@@ -15,6 +15,9 @@ const Color darkCards = Color(0xFF203747);
 const Color darkPrimary = Color(0xFF397A9B);
 const Color darkAccent = Color(0xFFA9D6E8);
 
+// لون المهام المكتملة
+const Color completedColor = Color(0xFF2EAD62);
+
 class MahamyApp extends StatefulWidget {
   const MahamyApp({super.key});
 
@@ -236,7 +239,7 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     'أنجزت $doneCount',
                     style: TextStyle(
-                      color: primaryColor,
+                      color: completedColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -280,6 +283,9 @@ class _HomePageState extends State<HomePage> {
                   : ListView.builder(
                       itemCount: myTasks.length,
                       itemBuilder: (context, index) {
+                        final bool finished =
+                            isFinished[index];
+
                         return Card(
                           margin: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -291,8 +297,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                           child: ListTile(
                             leading: Checkbox(
-                              value: isFinished[index],
-                              activeColor: primaryColor,
+                              value: finished,
+                              activeColor: completedColor,
+                              checkColor: Colors.white,
                               onChanged: (value) {
                                 toggleTask(index, value);
                               },
@@ -300,10 +307,12 @@ class _HomePageState extends State<HomePage> {
                             title: Text(
                               myTasks[index],
                               style: TextStyle(
-                                color: textColor,
-                                decoration: isFinished[index]
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
+                                color: finished
+                                    ? completedColor
+                                    : textColor,
+                                fontWeight: finished
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                             trailing: IconButton(
