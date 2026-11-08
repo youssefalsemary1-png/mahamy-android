@@ -1,37 +1,98 @@
-
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MahamyApp());
 }
 
-const Color backgroundColor = Color(0xFFF7F3EA);
-const Color textColor = Color(0xFF26334A);
-const Color primaryColor = Color(0xFFA8DCCB);
-const Color accentColor = Color(0xFFC9B9DF);
+// ألوان الوضع الفاتح
+const Color lightBackground = Color(0xFFEAF4FA);
+const Color lightPrimary = Color(0xFF397A9B);
+const Color lightText = Color(0xFF243B53);
 
-class MahamyApp extends StatelessWidget {
+// ألوان الوضع الداكن
+const Color darkBackground = Color(0xFF14212B);
+const Color darkCards = Color(0xFF203747);
+const Color darkPrimary = Color(0xFF397A9B);
+const Color darkAccent = Color(0xFFA9D6E8);
+
+class MahamyApp extends StatefulWidget {
   const MahamyApp({super.key});
+
+  @override
+  State<MahamyApp> createState() => _MahamyAppState();
+}
+
+class _MahamyAppState extends State<MahamyApp> {
+  bool isDark = false;
+
+  void changeTheme() {
+    setState(() {
+      isDark = !isDark;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'مهامي',
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+
       theme: ThemeData(
-        scaffoldBackgroundColor: backgroundColor,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryColor,
-        ),
         useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: lightBackground,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: lightPrimary,
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: lightBackground,
+          foregroundColor: lightText,
+          centerTitle: true,
+        ),
+        cardTheme: const CardThemeData(
+          color: Colors.white,
+          elevation: 1,
+        ),
       ),
-      home: const HomePage(),
+
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: darkBackground,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: darkPrimary,
+          brightness: Brightness.dark,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: darkBackground,
+          foregroundColor: darkAccent,
+          centerTitle: true,
+        ),
+        cardTheme: const CardThemeData(
+          color: darkCards,
+          elevation: 1,
+        ),
+      ),
+
+      home: HomePage(
+        isDark: isDark,
+        onThemeChanged: changeTheme,
+      ),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final bool isDark;
+  final VoidCallback onThemeChanged;
+
+  const HomePage({
+    super.key,
+    required this.isDark,
+    required this.onThemeChanged,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -77,28 +138,45 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool dark = widget.isDark;
+
+    final Color textColor =
+        dark ? Colors.white : lightText;
+
+    final Color primaryColor =
+        dark ? darkAccent : lightPrimary;
+
+    final Color inputColor =
+        dark ? darkCards : Colors.white;
+
     int doneCount =
         isFinished.where((e) => e == true).length;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: backgroundColor,
         appBar: AppBar(
           title: const Text(
-            "مهامي",
+            'مهامي',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: textColor,
+              fontSize: 23,
             ),
           ),
-          backgroundColor: backgroundColor,
-          centerTitle: true,
-          elevation: 0,
+          actions: [
+            IconButton(
+              onPressed: widget.onThemeChanged,
+              tooltip: dark ? 'الوضع الفاتح' : 'الوضع الداكن',
+              icon: Icon(
+                dark ? Icons.light_mode : Icons.dark_mode,
+                size: 25,
+              ),
+            ),
+          ],
         ),
+
         body: Column(
           children: [
-            // إضافة مهمة جديدة
             Padding(
               padding: const EdgeInsets.all(12),
               child: Row(
@@ -107,13 +185,14 @@ class _HomePageState extends State<HomePage> {
                     child: TextField(
                       controller: myController,
                       onSubmitted: (_) => addNewTask(),
+                      style: TextStyle(color: textColor),
                       decoration: InputDecoration(
-                        hintText: "اكتب مهمة جديدة...",
+                        hintText: 'اكتب مهمة جديدة...',
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: inputColor,
                         border: OutlineInputBorder(
                           borderRadius:
-                              BorderRadius.circular(12),
+                              BorderRadius.circular(14),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -124,59 +203,72 @@ class _HomePageState extends State<HomePage> {
                     onPressed: addNewTask,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
-                      foregroundColor: textColor,
+                      foregroundColor:
+                          dark ? darkBackground : Colors.white,
                       padding: const EdgeInsets.symmetric(
-                        vertical: 15,
+                        vertical: 16,
                         horizontal: 18,
                       ),
                     ),
-                    child: const Text("إضافة"),
+                    child: const Text(
+                      'إضافة',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // عداد المهام
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 12,
+                horizontal: 15,
               ),
               child: Row(
                 mainAxisAlignment:
                     MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("عندك ${myTasks.length} مهمة"),
-                  Text("أنجزت $doneCount"),
+                  Text(
+                    'عندك ${myTasks.length} مهمة',
+                    style: TextStyle(color: textColor),
+                  ),
+                  Text(
+                    'أنجزت $doneCount',
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: 10),
 
-            // قائمة المهام
             Expanded(
               child: myTasks.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.task_alt,
-                            size: 65,
-                            color: accentColor,
+                            size: 70,
+                            color: primaryColor,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Text(
-                            "يوم جديد وفرصة جديدة!",
+                            'يوم جديد وفرصة جديدة!',
                             style: TextStyle(
                               color: textColor,
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            "أضف أول مهمة وابدأ إنجاز يومك",
+                            'أضف أول مهمة وابدأ إنجاز يومك',
                             style: TextStyle(
                               color: textColor,
                               fontSize: 14,
@@ -189,7 +281,6 @@ class _HomePageState extends State<HomePage> {
                       itemCount: myTasks.length,
                       itemBuilder: (context, index) {
                         return Card(
-                          color: Colors.white,
                           margin: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 5,
@@ -202,7 +293,6 @@ class _HomePageState extends State<HomePage> {
                             leading: Checkbox(
                               value: isFinished[index],
                               activeColor: primaryColor,
-                              checkColor: textColor,
                               onChanged: (value) {
                                 toggleTask(index, value);
                               },
