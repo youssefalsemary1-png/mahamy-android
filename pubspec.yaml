@@ -1,3 +1,4 @@
+
 name: mahamy
 description: تطبيق مهامي لتنظيم المهام اليومية
 publish_to: 'none'
@@ -10,7 +11,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
   cupertino_icons: ^1.0.8
+  flutter_local_notifications: ^19.5.0
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
