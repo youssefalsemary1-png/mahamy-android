@@ -70,7 +70,7 @@ Future<void> scheduleAllNotifications() async {
   const NotificationDetails hourlyNotificationDetails =
       NotificationDetails(android: hourlyDetails);
 
-  // تذكير الصلاة على النبي كل ساعة بشكل متكرر
+  // تذكير الصلاة على النبي كل ساعة
   await notifications.periodicallyShow(
     1,
     'تذكير جميل ❤️',
@@ -137,17 +137,16 @@ Future<void> scheduleAllNotifications() async {
       hour,
     );
 
-    // لو الموعد عدى، يبدأ التكرار من اليوم التالي
     if (!scheduledTime.isAfter(now)) {
       scheduledTime = scheduledTime.add(const Duration(days: 1));
     }
 
     await notifications.zonedSchedule(
-      id: 100 + i,
-      title: reminders[i]['title']!,
-      body: reminders[i]['body']!,
-      scheduledDate: scheduledTime,
-      notificationDetails: const NotificationDetails(
+      100 + i,
+      reminders[i]['title']!,
+      reminders[i]['body']!,
+      scheduledTime,
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           'daily_reminders',
           'التذكيرات اليومية',
@@ -184,7 +183,6 @@ class _MahamyAppState extends State<MahamyApp> {
       debugShowCheckedModeBanner: false,
       title: 'مهامي',
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -203,7 +201,6 @@ class _MahamyAppState extends State<MahamyApp> {
           elevation: 1,
         ),
       ),
-
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -222,7 +219,6 @@ class _MahamyAppState extends State<MahamyApp> {
           elevation: 1,
         ),
       ),
-
       home: HomePage(
         isDark: isDark,
         onThemeChanged: changeTheme,
@@ -321,7 +317,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-
         body: Column(
           children: [
             Padding(
@@ -367,7 +362,6 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 15,
@@ -390,9 +384,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 10),
-
             Expanded(
               child: myTasks.isEmpty
                   ? Center(
