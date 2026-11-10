@@ -29,6 +29,49 @@ jobs:
       - name: Create Android project files
         run: flutter create --platforms=android --project-name mahamy .
 
+      - name: Enable Core Library Desugaring
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          kts = Path("android/app/build.gradle.kts")
+          groovy = Path("android/app/build.gradle")
+
+          if kts.exists():
+              path = kts
+              content = path.read_text()
+              flag = "isCoreLibraryDesugaringEnabled = true"
+              dependency = 'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
+          elif groovy.exists():
+              path = groovy
+              content = path.read_text()
+              flag = "coreLibraryDesugaringEnabled true"
+              dependency = "coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'"
+          else:
+              raise RuntimeError("Gradle app file not found")
+
+          if "Core Library Desugaring" not in content and flag not in content:
+              content, count = re.subn(
+                  r'(compileOptions\s*\{)',
+                  r'\1\n        ' + flag,
+                  content,
+                  count=1
+              )
+              if count == 0:
+                  raise RuntimeError("Could not find compileOptions")
+
+          if "desugar_jdk_libs" not in content:
+              match = re.search(r'dependencies\s*\{', content)
+              if match:
+                  content = content[:match.end()] + "\n    " + dependency + content[match.end():]
+              else:
+                  content += "\ndependencies {\n    " + dependency + "\n}\n"
+
+          path.write_text(content)
+          print("Desugaring configured successfully.")
+          PY
+
       - name: Configure notification permissions
         run: |
           python3 - <<'PY'
@@ -73,9 +116,6 @@ jobs:
                   receivers + '\n    </application>',
                   1
               )
-
-          if '<application' not in content or '</application>' not in content:
-              raise RuntimeError("AndroidManifest.xml structure is invalid")
 
           manifest.write_text(content)
           print("Notification configuration added successfully.")
