@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MahamyApp());
-}
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
 // ألوان الوضع الفاتح
 const Color lightBackground = Color(0xFFEAF4FA);
@@ -17,6 +17,157 @@ const Color darkAccent = Color(0xFFA9D6E8);
 
 // لون المهام المكتملة
 const Color completedColor = Color(0xFF2EAD62);
+
+final FlutterLocalNotificationsPlugin notifications =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeNotifications();
+
+  runApp(const MahamyApp());
+}
+
+// تهيئة الإشعارات
+Future<void> initializeNotifications() async {
+  tz_data.initializeTimeZones();
+
+  // توقيت مصر
+  tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
+
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings settings =
+      InitializationSettings(android: androidSettings);
+
+  await notifications.initialize(settings);
+
+  final androidPlugin = notifications
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  await androidPlugin?.requestNotificationsPermission();
+
+  await scheduleAllNotifications();
+}
+
+// جدولة الإشعارات
+Future<void> scheduleAllNotifications() async {
+  await notifications.cancelAll();
+
+  const AndroidNotificationDetails hourlyDetails =
+      AndroidNotificationDetails(
+    'hourly_reminders',
+    'تذكير الصلاة على النبي',
+    channelDescription: 'تذكير متكرر بالصلاة على النبي ﷺ',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails hourlyNotificationDetails =
+      NotificationDetails(android: hourlyDetails);
+
+  // إشعار الصلاة على النبي كل ساعة
+  final now = tz.TZDateTime.now(tz.local);
+
+  for (int hour = 1; hour <= 24; hour++) {
+    final scheduledTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+    ).add(Duration(hours: hour));
+
+    await notifications.zonedSchedule(
+      id: hour,
+      title: 'تذكير جميل ❤️',
+      body: 'هل صليت على النبي اليوم؟ ﷺ',
+      scheduledDate: scheduledTime,
+      notificationDetails: hourlyNotificationDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  // رسائل التذكير اليومية
+  final List<Map<String, String>> reminders = [
+    {
+      'title': 'ابدأ يومك بنية جميلة 🌅',
+      'body': 'لا تدع يومك يمر دون إنجاز شيء مفيد.'
+    },
+    {
+      'title': 'خطوة جديدة نحو الأفضل',
+      'body': 'افعل اليوم شيئًا كنت تؤجله أو تظن أنك لا تستطيع إنجازه.'
+    },
+    {
+      'title': 'اهتم بصحتك 💧',
+      'body': 'خذ استراحة قصيرة واشرب كوبًا من الماء.'
+    },
+    {
+      'title': 'حافظ على صلاتك',
+      'body': 'هل أديت فروضك اليوم؟ لا تجعل انشغالك ينسيك صلاتك.'
+    },
+    {
+      'title': 'وقتك ثمين',
+      'body': 'امنح نفسك بعض الوقت بعيدًا عن الهاتف.'
+    },
+    {
+      'title': 'طوّر نفسك 📚',
+      'body': 'تعلم معلومة جديدة أو اقرأ شيئًا ينفعك.'
+    },
+    {
+      'title': 'الحمد لله دائمًا',
+      'body': 'تذكر نعمة جميلة في حياتك واحمد الله عليها.'
+    },
+    {
+      'title': 'راجع يومك 🌙',
+      'body': 'ما أفضل شيء فعلته اليوم؟ وما الذي يمكنك تحسينه غدًا؟'
+    },
+    {
+      'title': 'استعد ليوم جديد',
+      'body': 'جهّز ما تحتاجه للغد، ولا تنسَ أن تمنح نفسك الراحة.'
+    },
+  ];
+
+  const List<int> reminderHours = [
+    7, 9, 11, 13, 15, 17, 19, 21, 22
+  ];
+
+  for (int i = 0; i < reminders.length; i++) {
+    final hour = reminderHours[i];
+
+    var scheduledTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+    );
+
+    if (!scheduledTime.isAfter(now)) {
+      scheduledTime = scheduledTime.add(const Duration(days: 1));
+    }
+
+    await notifications.zonedSchedule(
+      id: 100 + i,
+      title: reminders[i]['title']!,
+      body: reminders[i]['body']!,
+      scheduledDate: scheduledTime,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'daily_reminders',
+          'التذكيرات اليومية',
+          channelDescription: 'رسائل تحفيزية وتذكيرات يومية',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+}
 
 class MahamyApp extends StatefulWidget {
   const MahamyApp({super.key});
