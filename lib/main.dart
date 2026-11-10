@@ -57,6 +57,7 @@ Future<void> initializeNotifications() async {
 Future<void> scheduleAllNotifications() async {
   await notifications.cancelAll();
 
+  // تفاصيل إشعار الصلاة على النبي
   const AndroidNotificationDetails hourlyDetails =
       AndroidNotificationDetails(
     'hourly_reminders',
@@ -69,27 +70,15 @@ Future<void> scheduleAllNotifications() async {
   const NotificationDetails hourlyNotificationDetails =
       NotificationDetails(android: hourlyDetails);
 
-  // إشعار الصلاة على النبي كل ساعة
-  final now = tz.TZDateTime.now(tz.local);
-
-  for (int hour = 1; hour <= 24; hour++) {
-    final scheduledTime = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-    ).add(Duration(hours: hour));
-
-    await notifications.zonedSchedule(
-      id: hour,
-      title: 'تذكير جميل ❤️',
-      body: 'هل صليت على النبي اليوم؟ ﷺ',
-      scheduledDate: scheduledTime,
-      notificationDetails: hourlyNotificationDetails,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    );
-  }
+  // تذكير الصلاة على النبي كل ساعة بشكل متكرر
+  await notifications.periodicallyShow(
+    1,
+    'تذكير جميل ❤️',
+    'هل صليت على النبي اليوم؟ ﷺ',
+    RepeatInterval.hourly,
+    hourlyNotificationDetails,
+    androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+  );
 
   // رسائل التذكير اليومية
   final List<Map<String, String>> reminders = [
@@ -135,6 +124,8 @@ Future<void> scheduleAllNotifications() async {
     7, 9, 11, 13, 15, 17, 19, 21, 22
   ];
 
+  final now = tz.TZDateTime.now(tz.local);
+
   for (int i = 0; i < reminders.length; i++) {
     final hour = reminderHours[i];
 
@@ -146,6 +137,7 @@ Future<void> scheduleAllNotifications() async {
       hour,
     );
 
+    // لو الموعد عدى، يبدأ التكرار من اليوم التالي
     if (!scheduledTime.isAfter(now)) {
       scheduledTime = scheduledTime.add(const Duration(days: 1));
     }
@@ -165,6 +157,7 @@ Future<void> scheduleAllNotifications() async {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 }
