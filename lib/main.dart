@@ -35,7 +35,6 @@ Future<void> main() async {
 // تهيئة الإشعارات
 Future<void> initializeNotifications() async {
   tz_data.initializeTimeZones();
-
   tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
 
   const AndroidInitializationSettings androidSettings =
@@ -278,17 +277,10 @@ class _HomePageState extends State<HomePage> {
 
       for (final item in decodedData) {
         if (item is Map) {
-          loadedTasks.add(item['task'].toString());
+          loadedTasks.add(item['task']?.toString() ?? '');
           loadedFinished.add(item['finished'] == true);
-
-          // دعم المهام القديمة التي لم يكن لها جمل
-          loadedFeelings.add(
-            item['feeling']?.toString() ?? '',
-          );
-
-          loadedDates.add(
-            item['feelingDate']?.toString() ?? '',
-          );
+          loadedFeelings.add(item['feeling']?.toString() ?? '');
+          loadedDates.add(item['feelingDate']?.toString() ?? '');
         }
       }
 
@@ -325,12 +317,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void addNewTask() {
-    if (myController.text.trim().isEmpty) {
-      return;
-    }
+    final task = myController.text.trim();
+
+    if (task.isEmpty) return;
 
     setState(() {
-      myTasks.add(myController.text.trim());
+      myTasks.add(task);
       isFinished.add(false);
       taskFeelings.add('');
       feelingDates.add('');
@@ -341,6 +333,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void deleteTask(int index) {
+    if (index < 0 || index >= myTasks.length) return;
+
     setState(() {
       myTasks.removeAt(index);
       isFinished.removeAt(index);
@@ -352,6 +346,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void toggleTask(int index, bool? value) {
+    if (index < 0 || index >= isFinished.length) return;
+
     setState(() {
       isFinished[index] = value ?? false;
     });
@@ -361,75 +357,83 @@ class _HomePageState extends State<HomePage> {
 
   // إضافة أو تعديل جملة المهمة
   Future<void> editTaskFeeling(int index) async {
+    if (index < 0 || index >= taskFeelings.length) return;
+
     final controller = TextEditingController(
       text: taskFeelings[index],
     );
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: AlertDialog(
-            title: const Text(
-              'جملة من قلبك ❤️',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'اكتب شعورك تجاه هذه المهمة، حتى لو بكلمة واحدة.',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+    String? result;
+
+    try {
+      result = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) {
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              title: const Text(
+                'جملة من قلبك ❤️',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'اكتب شعورك تجاه هذه المهمة، حتى لو بكلمة واحدة.',
                   ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: controller,
-                  maxLines: 3,
-                  maxLength: 120,
-                  decoration: InputDecoration(
-                    hintText: 'مثلاً: كنت خايف بس عملتها...',
-                    filled: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: controller,
+                    maxLines: 3,
+                    maxLength: 120,
+                    decoration: InputDecoration(
+                      hintText: 'مثلاً: كنت خايف بس عملتها...',
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text('إلغاء'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogContext,
+                      controller.text.trim(),
+                    );
+                  },
+                  child: const Text('حفظ'),
                 ),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('إلغاء'),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    taskFeelings[index] = controller.text.trim();
+          );
+        },
+      );
+    } finally {
+      controller.dispose();
+    }
 
-                    feelingDates[index] =
-                        taskFeelings[index].isEmpty
-                            ? ''
-                            : DateTime.now().toIso8601String();
-                  });
+    if (!mounted || result == null) return;
+    if (index >= taskFeelings.length) return;
 
-                  saveTasks();
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('حفظ'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    setState(() {
+      taskFeelings[index] = result!;
+      feelingDates[index] = result.isEmpty
+          ? ''
+          : DateTime.now().toIso8601String();
+    });
 
-    controller.dispose();
+    await saveTasks();
   }
 
   // فتح صفحة كل الجمل والتجارب
@@ -456,16 +460,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  String formatDate(String dateValue) {
-    final date = DateTime.tryParse(dateValue);
-
-    if (date == null) return '';
-
-    final localDate = date.toLocal();
-
-    return '${localDate.day}/${localDate.month}/${localDate.year}';
-  }
-
   @override
   void dispose() {
     myController.dispose();
@@ -476,19 +470,14 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final bool dark = widget.isDark;
 
-    final Color textColor =
-        dark ? Colors.white : lightText;
+    final Color textColor = dark ? Colors.white : lightText;
+    final Color primaryColor = dark ? darkAccent : lightPrimary;
+    final Color inputColor = dark ? darkCards : Colors.white;
 
-    final Color primaryColor =
-        dark ? darkAccent : lightPrimary;
-
-    final Color inputColor =
-        dark ? darkCards : Colors.white;
-
-    int doneCount =
+    final int doneCount =
         isFinished.where((e) => e == true).length;
 
-    int phrasesCount =
+    final int phrasesCount =
         taskFeelings.where((e) => e.trim().isNotEmpty).length;
 
     return Directionality(
@@ -537,8 +526,7 @@ class _HomePageState extends State<HomePage> {
                         filled: true,
                         fillColor: inputColor,
                         border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -569,12 +557,9 @@ class _HomePageState extends State<HomePage> {
 
             // ملخص المهام والجمل
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 15,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'عندك ${myTasks.length} مهمة',
@@ -647,11 +632,8 @@ class _HomePageState extends State<HomePage> {
                   : ListView.builder(
                       itemCount: myTasks.length,
                       itemBuilder: (context, index) {
-                        final bool finished =
-                            isFinished[index];
-
-                        final String feeling =
-                            taskFeelings[index];
+                        final bool finished = isFinished[index];
+                        final String feeling = taskFeelings[index];
 
                         return Card(
                           margin: const EdgeInsets.symmetric(
@@ -659,8 +641,7 @@ class _HomePageState extends State<HomePage> {
                             vertical: 5,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: ListTile(
                             contentPadding:
@@ -689,9 +670,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                             subtitle: feeling.isNotEmpty
                                 ? Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 6,
-                                    ),
+                                    padding: const EdgeInsets.only(top: 6),
                                     child: Text(
                                       '❤️ $feeling',
                                       style: TextStyle(
@@ -830,9 +809,7 @@ class FeelingsHistoryPage extends StatelessWidget {
                     ),
                   ),
                   ...entries.reversed.map((entry) {
-                    final date = formatDate(
-                      entry['date'] ?? '',
-                    );
+                    final date = formatDate(entry['date'] ?? '');
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -842,8 +819,7 @@ class FeelingsHistoryPage extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(15),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
