@@ -11,12 +11,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-shared_preferences: ^2.5.3
-
   cupertino_icons: ^1.0.8
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
