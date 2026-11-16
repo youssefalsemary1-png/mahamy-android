@@ -1,6 +1,9 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -33,7 +36,6 @@ Future<void> main() async {
 Future<void> initializeNotifications() async {
   tz_data.initializeTimeZones();
 
-  // توقيت مصر
   tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
 
   const AndroidInitializationSettings androidSettings =
@@ -57,7 +59,6 @@ Future<void> initializeNotifications() async {
 Future<void> scheduleAllNotifications() async {
   await notifications.cancelAll();
 
-  // تفاصيل إشعار الصلاة على النبي
   const AndroidNotificationDetails hourlyDetails =
       AndroidNotificationDetails(
     'hourly_reminders',
@@ -70,7 +71,6 @@ Future<void> scheduleAllNotifications() async {
   const NotificationDetails hourlyNotificationDetails =
       NotificationDetails(android: hourlyDetails);
 
-  // تذكير الصلاة على النبي كل ساعة
   await notifications.periodicallyShow(
     1,
     'تذكير جميل ❤️',
@@ -80,7 +80,6 @@ Future<void> scheduleAllNotifications() async {
     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
   );
 
-  // رسائل التذكير اليومية
   final List<Map<String, String>> reminders = [
     {
       'title': 'ابدأ يومك بنية جميلة 🌅',
@@ -248,6 +247,62 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController myController =
       TextEditingController();
 
+  static const String tasksStorageKey = 'mahamy_saved_tasks';
+
+  @override
+  void initState() {
+    super.initState();
+    loadTasks();
+  }
+
+  // استرجاع المهام المحفوظة
+  Future<void> loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedData = prefs.getString(tasksStorageKey);
+
+    if (savedData == null) return;
+
+    try {
+      final List<dynamic> decodedData = jsonDecode(savedData);
+
+      final loadedTasks = <String>[];
+      final loadedFinished = <bool>[];
+
+      for (final item in decodedData) {
+        if (item is Map) {
+          loadedTasks.add(item['task'].toString());
+          loadedFinished.add(item['finished'] == true);
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        myTasks = loadedTasks;
+        isFinished = loadedFinished;
+      });
+    } catch (e) {
+      debugPrint('خطأ في استرجاع المهام: $e');
+    }
+  }
+
+  // حفظ المهام على الجهاز
+  Future<void> saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedData = List.generate(myTasks.length, (index) {
+      return {
+        'task': myTasks[index],
+        'finished': isFinished[index],
+      };
+    });
+
+    await prefs.setString(
+      tasksStorageKey,
+      jsonEncode(savedData),
+    );
+  }
+
   void addNewTask() {
     if (myController.text.trim().isEmpty) {
       return;
@@ -258,6 +313,8 @@ class _HomePageState extends State<HomePage> {
       isFinished.add(false);
       myController.clear();
     });
+
+    saveTasks();
   }
 
   void deleteTask(int index) {
@@ -265,12 +322,16 @@ class _HomePageState extends State<HomePage> {
       myTasks.removeAt(index);
       isFinished.removeAt(index);
     });
+
+    saveTasks();
   }
 
   void toggleTask(int index, bool? value) {
     setState(() {
       isFinished[index] = value ?? false;
     });
+
+    saveTasks();
   }
 
   @override
@@ -376,7 +437,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Text(
                     'أنجزت $doneCount',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: completedColor,
                       fontWeight: FontWeight.bold,
                     ),
